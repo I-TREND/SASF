@@ -1,0 +1,19 @@
+Django==1.5.1
+Fabric==1.6.0
+South==0.7.6
+django-bootstrap-toolkit==2.13.4
+django-tinymce==1.5.1
+pygeoip==0.2.6
+python-whois==0.2
+Unidecode==0.04.13
+dnspython==1.11.0
+netaddr==0.7.10
+django-jquery==1.9.1
+
+cssselect
+lxml
+scrapy
+-e git+https://github.com/pborky/python-quirks.git#egg=python-quirks
+-e git+https://github.com/pborky/webkit-scraper.git#egg=webkit-scraper
+-e git+https://github.com/pborky/dryscrape.git#egg=dryscrape
+-e git+https://github.com/pborky/scrapely.git#egg=scrapely

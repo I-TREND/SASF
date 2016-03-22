@@ -1,0 +1,3 @@
+-r base.txt
+raven==3.3.6
+django-compressor==1.3

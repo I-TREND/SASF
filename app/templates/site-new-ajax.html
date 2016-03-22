@@ -1,0 +1,68 @@
+{% load i18n %}
+{% load url from future %}
+{% load bootstrap_toolkit %}
+
+{% block content %}
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="lbl-add}">Add site</h3>
+    </div>
+    <div class="modal-body">
+        <div class="row-fluid">
+            <div id="alerts"></div>
+        </div>
+        <form id="form-site" action="{% url 'site_add' searchid %}?category={{ category }}&nexturl={{ nexturl|urlencode }}" method="POST">
+            <div class="row-fluid">
+                <div class="span6">
+                    {% csrf_token %}
+                    <input type="hidden" name="siteid" value="{{ site.id }}">
+                    {% if forms.site %}
+                        {{ forms.site|as_bootstrap:'inline' }}
+                    {% endif %}
+                    {% if forms.search_result %}
+                        {{ forms.search_result|as_bootstrap:'inline' }}
+                    {% endif %}
+                </div>
+                <div class="span6">
+                    {% if forms.site_data %}
+                        {{ forms.site_data|as_bootstrap:'inline' }}
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <!--button class="btn update btn-inverse pull-left" data-toggle="tooltip" data-placement="top" data-original-title="Update content"><i class="icon-refresh icon-white"></i></button-->
+        {% if forms.site or forms.site_data %}
+            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+            <button id="form-site-send" class="btn btn-primary">Save changes</button>
+        {% else %}
+            <button class="btn btn-primary" data-dismiss="modal" aria-hidden="true">Close</button>
+        {% endif %}
+    </div>
+
+    <script>
+        var $modal = $('#ajax-modal');
+        $('#form-site-send').on(
+            'click',
+            function() {
+                $modal.modalmanager('loading');
+                setTimeout(function() {
+                    $.post(
+                        '{% url 'site_add' searchid  %}?category={{ category }}&nexturl={{ nexturl|urlencode }}',
+                        $('#form-site').serialize()
+                    )       .done(function() { /*$modal.modal('hide');*/  document.location.reload(); })
+                            .fail(function() {
+                                $('#alerts').html('\
+                                <div class="alert alert-error"> \
+                                        <button type="button" class="close" data-dismiss="alert">&times;</button> \
+                                        <strong>Error!</strong> Changes has not been saved. \
+                                </div>');
+                            })
+                            .always(function() { /* $modal.modalmanager('removeLoading');*/ });
+                }, 100);
+            }
+        )
+    </script>
+
+{% endblock  %}

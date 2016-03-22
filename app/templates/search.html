@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load bootstrap_toolkit %}
+{% load url from future %}
+{% load staticfiles %}
+
+{% block body_class %}{{ block.super }} home{% endblock %}
+
+{% block nav-search %}active{% endblock %}
+
+{% block extrastyle %}
+    <link href="{% static 'css/datepicker.css' %}" rel="stylesheet">
+    <link href="{% static 'css/bootstrap-modal.css' %}" rel="stylesheet">
+{% endblock %}
+{% block javascript_library %}
+    <script src="{% static 'js/bootstrap-datepicker.js' %}"></script>
+    <script src="{% static 'js/bootstrap-modalmanager.js' %}"></script>
+    <script src="{% static 'js/bootstrap-modal.js' %}"></script>
+{% endblock %}
+{% block sidebar %}
+
+
+{% endblock %}
+
+{% block content %}
+
+    <ul class="nav nav-pills">
+        <li class="{% if forms.search %}active{% endif %}">
+            <a href="{% url 'search' %}">Manual</a>
+        </li>
+        <li class="{% if not forms.search and not forms.add %}active{% endif %}">
+            <a href="{% url 'search_results_all' %}{% if q %}?find={{ q }}{% endif %}">All results</a>
+        </li>
+        <li class="{% if not forms.search and forms.add %}active{% endif %}">
+            <a href="{% url 'search_new' %}">Add</a>
+        </li>
+        {% if not forms.add %}
+            <form id="find" class="form-search pull-right" action="" method="GET">
+                <div class="control-group {% if q %}success{% endif %}">
+                    <input type="hidden" value="{{ category }}" name="category" >
+                    <div class="input-append">
+                        <input type="text" class="search-query" placeholder="Find URL" name="find" {% if q %}value="{{ q }}"{% endif %}>
+                        <button type="submit" class="btn {% if q %}btn-success{% else %}btn-primary{% endif %}"><i class="icon-search"></i></button>
+                    </div>
+                </div>
+            </form>
+        {% endif %}
+    </ul>
+    {% if forms.search or forms.add or search %}
+        <div class="container-fluid">
+            <div class="span7">
+                {%  if forms.search %}
+                    <form id="search" class="form-search" action="{% url 'search_submit' %}" method="POST">
+                        {% csrf_token %}
+                        <div class="input-append">
+                            {{ forms.search|as_bootstrap:'inline'|removetags:'label' }}
+                            <button type="submit" class="btn btn-primary"><i class="icon-search"></i></button>
+                        </div>
+                    </form>
+                {% endif %}
+                {%  if forms.add %}
+                    <form id="search" class="form-search" action="{% url 'search_add' %}?category={{ category }}" method="POST">
+                        {% csrf_token %}
+                        <div class="input-append">
+                            {{ forms.add|as_bootstrap:'inline'|removetags:'label' }}
+                            <button type="submit" class="btn btn-primary"><i class="icon-plus"></i></button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+            <div class="span5">
+                {% if search %}
+                    <small><b>{% if search.manual %}Search{% else %}Automatic search{% endif %} on</b> {{ search.date }}{% if search.user %} <b>by</b> {% if search.user.first_name %}{{ search.user.first_name }} {{ search.user.last_name }}{% else %}{{ search.user.username }}{% endif %}{% endif %}</small>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+    {% if results or category %}
+        <div class="tabbable tabs-left"> <!-- Only required for left/right tabs -->
+
+            <ul class="nav nav-tabs">
+                {#  generate tabs on the right #}
+                {% for cat in categories  %}
+                    <li class="{% if cat.0.symbol == category %}active{% endif %} "><a href="?category={{ cat.0.symbol }}{% if q %}&find={{ q }}{% endif %}">{{ cat.0.name }}{% if cat.1 %}&nbsp;<span class="badge pull-right">{{ cat.1 }}</span>{% endif %}</a></li>
+                {% endfor %}
+                <li class="{% if category == 'other' %}active{% endif %} "><a href="?category=other{% if q %}&find={{ q }}{% endif %}">Other{% if result_counts.other %}&nbsp;<span class="badge pull-right">{{ result_counts.other }}</span>{% endif %}</a></li>
+                <li class="{% if category == 'banned' %}active{% endif %} "><a href="?category=banned{% if q %}&find={{ q }}{% endif %}" class="muted">Banned{% if result_counts.banned %}&nbsp;<span class="badge pull-right">{{ result_counts.banned }}</span>{% endif %}</a></li>
+            </ul>
+
+            {#  generate tab content #}
+            <div class="tab-content">
+
+                <div class="tab-pane active"  id="{{ category }}">
+                    <table class="table" style="display: table;">
+                        {% if results %}
+                            <tr>
+                                <th style="text-align: center;">
+                                    <input class="site-selector-all" form="selected-sites" type="checkbox" data-toggle="tooltip" data-placement="top" data-original-title="Select all">
+                                </th>
+                                <th style="text-align: center;">No.</th>
+                                <th style="text-align: center;">Url</th>
+                                <th style="text-align: center;">Name</th>
+                                <th>
+                                    <div class="btn-group">
+                                        {% if results %}
+                                            <button class="btn btn-info dropdown-toggle" form="detail-{{ result.site.id }}" data-toggle="dropdown">
+                                                Category
+                                                <span class="caret"></span>
+                                            </button>
+                                        {% endif %}
+                                        <ul class="dropdown-menu pull-right">
+                                            {%  for c in categories %}
+                                                {% if c.0.symbol != category %}
+                                                    <li onclick="$('#selected-sites-category').val('{{ c.0.symbol }}'); $('#selected-sites').submit()">
+                                                        <a href="#">{{ c.0.name }}</a>
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if category != 'other' %}
+                                                <li onclick="$('#selected-sites-category').val('other'); $('#selected-sites').submit()">
+                                                    <a href="#">Other</a>
+                                                </li>
+                                            {% endif %}
+                                        </ul>
+                                        <form hidden id="selected-sites" action="{% url 'sites_edit_category' %}?nexturl={{ request.get_full_path|urlencode }}" method="POST">
+                                            {% csrf_token %}
+                                            <input hidden name="selected-sites-category" id="selected-sites-category">
+                                        </form>
+                                    </div>
+                                </th>
+                                <th>
+                                    <a class="close" onclick="$('#selected-sites-category').val('banned'); $('#selected-sites').submit()"  data-toggle="tooltip" data-placement="top" data-original-title="Selected">&times;</a>
+                                    <!--button form="selected-sites" class="close" data-toggle="tooltip" data-placement="top" data-original-title="Add to ban list">&times;</button-->
+                                </th>
+                            </tr>
+                        {% endif %}
+                        {% if category != 'banned' %}
+
+                            {% for result in results %}
+                                <tr>
+                                    <td>
+                                        <input class="site-selector" form="selected-sites" value="{{ result.site.id }}" name="site-{{ result.site.id }}" type="checkbox" data-toggle="tooltip" data-placement="top" data-original-title="Select item">
+                                    </td>
+                                    <td>
+                                        {% if search %}
+                                            <span class="badge badge-info" data-toggle="tooltip" data-placement="top" data-original-title="Original sequence numbers">{{ result.sequence|truncatechars:10 }}</span>
+                                        {% else %}
+                                            <a href="{% url 'search_results' result.site.found.id %}?category={{ category }}" class="badge badge-info" data-toggle="tooltip" data-placement="top" data-original-title="Original sequence numbers">{{ result.sequence|truncatechars:10 }}</a>
+                                        {% endif %}
+
+                                    </td>
+                                    <td>
+                                        {% if result.site.fresh %}<span class="label label-important"  data-toggle="tooltip" data-placement="top" data-original-title="New item detected!">New</span>{% endif %}
+                                        <a target="_blank" href="{{ result.site.site.url }}" data-toggle="tooltip" data-placement="top" data-original-title="{% if result.keyword.all %}Matched keywords: {% for item in result.keyword.all %} {{item.keyword}} {% if not forloop.last %}, {% endif %} {% endfor %}{% endif %}">
+                                            {{ result.site.site.url }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <small> {{ result.site.site.name|truncatechars:45 }}</small>
+                                    </td>
+                                    <td>
+                                        <form  hidden method="POST" id="detail-{{ result.site.id }}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="siteid" value="{{ result.site.id }}">
+                                        </form>
+
+                                        <div class="btn-group {% if forloop.last %}dropup{% endif %}">
+                                            <a class="btn btn-primary ajax edit" ajax-modal-url="{% url 'site_content_edit' result.site.id %}?nexturl={{ request.get_full_path|urlencode }}" href="#edit-{{ result.site.id }}">Edit</a>
+                                            <a class="btn" href="{% url 'scrap_site' result.site.id %}">Details</a>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <form action="{% url 'site_ban' %}?category={{ category }}&nexturl={{ request.get_full_path|urlencode }}" method="POST">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="siteid" value="{{ result.site.id }}">
+                                            <button class="close" data-toggle="tooltip" data-placement="top" data-original-title="Add to ban list">&times;</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            {% for result in results %}
+                                {% if result.site.banned  %}
+                                    <tr>
+                                        <td>
+                                            <input class="site-selector" form="selected-sites" value="{{ result.site.id }}" name="site-{{ result.site.id }}" type="checkbox" data-toggle="tooltip" data-placement="top" data-original-title="Select item">
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-info" data-toggle="tooltip" data-placement="top" data-original-title="Original sequence numbers">{{ result.sequence|truncatechars:10 }}</span>
+                                        </td>
+                                        <td>
+                                            {% if result.site.fresh %}<span class="label label-important"  data-toggle="tooltip" data-placement="top" data-original-title="New item detected!">New</span>{% endif %}
+                                            <a target="_blank" href="{{ result.site.site.url }}" data-toggle="tooltip" data-placement="top" data-original-title="{% if result.keyword.all %}Matched keywords: {% for item in result.keyword.all %} {{item.keyword}} {% if not forloop.last %}, {% endif %} {% endfor %}{% endif %}">
+                                                {{ result.site.site.url }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <small> {{ result.site.site.name|truncatechars:45 }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a class="btn btn-primary ajax detail" ajax-modal-url="{% url 'site_content_detail' result.site.id %}" href="#detail-{{ result.site.id }}" data-toggle="modal">Details</a>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <form action="{% url 'site_ban' %}?nexturl={{ request.get_full_path|urlencode }}" method="POST">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="siteid" value="{{ result.site.id }}">
+                                                <button class="close" data-toggle="tooltip" data-placement="top" data-original-title="Remove from ban list">&times;</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </table>
+
+                    {% if results.has_previous or results.has_next %}
+                        <div class="pagination pagination-small pagination-right">
+                            <ul>
+                                {% if results.has_previous %}
+                                    <li><a data-toggle="tooltip" title="First" href="?category={{ category }}&page=1{% if q %}&find={{ q }}{% endif %}">&lt;&lt;</a></li>
+                                    <li><a data-toggle="tooltip" title="Previous" href="?category={{ category }}&page={{ results.previous_page_number }}{% if q %}&find={{ q }}{% endif %}">&lt;</a></li>
+                                {% else %}
+                                    <li class="disabled"><span data-toggle="tooltip" title="First">&lt;</span></li>
+                                    <li class="disabled"><span  data-toggle="tooltip" title="Previous">&lt;&lt;</span></li>
+                                {% endif %}
+                                {%  if pages %}
+                                    {% for p in pages %}
+                                        {% if p == results.number %}
+                                            <li class="active"><a href="?category={{ category }}&page={{ p }}{% if q %}&find={{ q }}{% endif %}">{{ p }}</a></li>
+                                        {% elif p == 0 %}
+                                            <li class="disabled"><span>&hellip;</span></li>
+                                        {% else %}
+                                            <li><a href="?category={{ category }}&page={{ p }}{% if q %}&find={{ q }}{% endif %}">{{ p }}</a></li>
+                                        {%  endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <li class="active"><a href="?category={{ category }}&page={{ results.number }}{% if q %}&find={{ q }}{% endif %}">{{ results.number }}/{{ results.paginator.num_pages }}</a></li>
+                                {% endif %}
+                                {% if results.has_next %}
+                                    <li><a data-toggle="tooltip" title="Next" href="?category={{ category }}&page={{ results.next_page_number }}{% if q %}&find={{ q }}{% endif %}">&gt;</a></li>
+                                    <li><a data-toggle="tooltip" title="Last" href="?category={{ category }}&page={{ results.paginator.num_pages }}{% if q %}&find={{ q }}{% endif %}">&gt;&gt;</a></li>
+                                {% else %}
+                                    <li class="disabled"><span data-toggle="tooltip" title="Next">&gt;</span></li>
+                                    <li class="disabled"><span data-toggle="tooltip" title="Last">&gt;&gt;</span></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    <div class="btn-group dropup">
+                        {% if forms.search %}
+                            <a class="btn btn-primary ajax edit" ajax-modal-url="{% url 'site_new' search.id %}?category={{ category }}&nexturl={{ request.get_full_path|urlencode }}" href="#new">Add</a>
+                        {% endif %}
+                        {% if results %}
+                            <a class="btn" href="?{{ request.GET.urlencode }}&format=csv"  data-toggle="tooltip" data-placement="right" data-original-title="Download csv"><i class="icon-download-alt"></i></a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="ajax-modal" class="modal hide" tabindex="-1" role="dialog"  aria-hidden="true">
+        </div>
+    {% endif %}
+
+{% endblock %}
+
+{% block javascript %}
+    <script>
+
+    // Javascript to enable link to tab
+    var url = document.location.toString();
+    var hash = url.hash;
+    if (hash) {
+        $('.nav-tabs a[href=#'+hash+']').tab('show') ;
+    }
+
+    // Change hash for page-reload
+    //$('.nav-tabs a')
+    //        .on('shown', function (e) { window.location.hash = e.target.hash; });
+    //$('.modal')
+    //        .on('shown', function (e) { window.location.hash = e.target.id; })
+    //        .on('hidden', function (e) { window.location.hash = ''; });
+    var $modal = $('#ajax-modal');
+    //var $
+    var modalLoad = function(loadingElem, url) {
+        return function(event) {
+            // create the backdrop and wait for next modal to be triggered
+            loadingElem.modalmanager('loading');
+            var _url = event.target.getAttribute("ajax-modal-url"); // + '?nexturl={{ request.get_full_path|urlencode }}';
+            if (_url) url = _url;
+            setTimeout(function() {
+                $modal.load(url, '', function(responseText, status){
+                    loadingElem.modalmanager('removeLoading');
+                    if (status == 'success') {
+                        $modal.modal();
+                        $('#ajax-modal .datepicker').datepicker();
+                        $('[data-toggle=tooltip]').tooltip();
+                        $('#ajax-modal .update').on( 'click', modalLoad($modal,url) );
+                    }
+                });
+            }, 100);
+        };
+    };
+    $('.ajax').on('click', modalLoad($('body')));
+    $('[data-toggle=tooltip]').tooltip();
+    $('input.site-selector-all').change(function () {$('input.site-selector').prop('checked',$('input.site-selector-all').prop('checked'));  })
+    $('input.site-selector').change(function () {$('input.site-selector-all').prop('checked',false);  })
+
+    </script>
+{% endblock  %}
+
+{% block footer %}
+{% endblock  %}

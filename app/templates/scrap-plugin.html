@@ -1,0 +1,11 @@
+{
+{% for descriptor in descriptors %}
+    "{{ descriptor.symbol }}": {
+    "id": {{ descriptor.id }},
+    "name": "{{ descriptor.name }}",
+    "desc": "{{ descriptor.desc }}",
+    "value": null,
+    "typ": "{{ descriptor.typ.symbol }}"
+    }{% if not forloop.last %},{% endif %}
+{% endfor %}
+}

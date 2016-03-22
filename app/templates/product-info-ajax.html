@@ -1,0 +1,109 @@
+{% load i18n %}
+{% load url from future %}
+{% load bootstrap_toolkit %}
+
+{% block content %}
+
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        {% if product %}
+            <h3 id="lbl-add}">Product information</h3>
+        {% elif site %}
+            <h3 id="lbl-add}">Site scraper</h3>
+        {% elif sitedata %}
+            <h3 id="lbl-add}">Site information</h3>
+        {% endif %}
+    </div>
+    <div class="modal-body">
+        <div class="row-fluid">
+            <div id="alerts"></div>
+        </div>
+        <form id="product-edit" name="product-edit" action="#">
+            {% csrf_token %}
+            {% if product %}
+                <input hidden="true" name="productid" value="{{ product.id }}"/>
+            {% endif %}
+            {% if scraper %}
+                <input hidden="true" name="scraperid" value="{{ scraper.id }}"/>
+            {% endif %}
+            {% if site %}
+                <input hidden="true" name="siteid" value="{{ site.id }}"/>
+            {% endif %}
+            {% if sitedata %}
+                <input hidden="true" name="sitedataid" value="{{ sitedata.id }}"/>
+            {% endif %}
+        </form>
+        <table class="table">
+            {% if site %}
+                <tr>
+                    <th class="pull-right"><label for="URL_PROD">URL</label></th>
+                    <td><input type="text" form="product-edit" id="URL_PROD" name="URL_PROD"  value="{{ scraper.url }}" /></td>
+                </tr>
+            {% endif %}
+            {% for value,descriptor in results %}
+                <tr>
+                    <th class="pull-right" data-toggle="tooltip" data-placement="top" data-original-title="{{ descriptor.desc }}">
+
+                        {% if not edit %}
+                            {{ descriptor.name }}
+                        {% else %}
+                            <label for="{{ descriptor.symbol }}">
+                                {{ descriptor.name }}
+                            </label>
+                        {% endif %}
+                    </th>
+                    <td>
+                        {% if not edit %}
+                            {% if descriptor.typ.symbol == 'URL' %}
+                                <a target="_blank" href="{{ value.value }}">{{ value.value|truncatechars:40 }}</a>
+                            {% else %}
+                                {{ value.value|truncatechars:40 }}
+                            {% endif %}
+                        {% else %}
+                            {% if site %}
+                                <input type="text" form="product-edit" id="{{ descriptor.symbol }}" name="{{ descriptor.symbol }}"  value="{{ value.value }}" />
+                            {% else %}
+                                <input type="text" form="product-edit" id="{{ descriptor.symbol }}" name="{{ descriptor.symbol }}"  placeholder="{{ value.value }}" />
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div class="modal-footer">
+        <button class="btn update btn-inverse pull-left" data-toggle="tooltip" data-placement="top" data-original-title="Update content"><i class="icon-refresh icon-white"></i></button>
+        {% if edit %}
+            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+            <button id="product-edit-send" class="btn btn-primary">Save changes</button>
+        {% else %}
+            <button class="btn btn-primary" data-dismiss="modal" aria-hidden="true">Close</button>
+        {% endif %}
+    </div>
+
+    <script>
+        var $modal = $('#ajax-modal');
+        $('#product-edit-send').on(
+                'click',
+                function() {
+                    $modal.modalmanager('loading');
+                    setTimeout(function() {
+                        $.post(
+                                        '{% url 'scrap_info_edit_do'  %}',
+                                        $('#product-edit').serialize()
+                                )       .done(function() { /*$modal.modal('hide');*/  document.location.reload(); })
+                                .fail(function() {
+                                    $('#alerts').html('\
+                                <div class="alert alert-error"> \
+                                        <button type="button" class="close" data-dismiss="alert">&times;</button> \
+                                        <strong>Error!</strong> Changes has not been saved. \
+                                </div>');
+                                })
+                                .always(function() { /* $modal.modalmanager('removeLoading');*/ });
+                    }, 100);
+                }
+        );
+        $('[data-toggle=tooltip]').tooltip();
+    </script>
+
+{% endblock  %}

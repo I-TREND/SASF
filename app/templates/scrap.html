@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load staticfiles %}
+
+{% block body_class %}{{ block.super }} home{% endblock %}
+
+{% block nav-scrap %}active{% endblock %}
+
+{% block extrastyle %}
+    <link href="{% static 'css/datepicker.css' %}" rel="stylesheet">
+    <link href="{% static 'css/bootstrap-modal.css' %}" rel="stylesheet">
+{% endblock %}
+{% block javascript_library %}
+    <script src="{% static 'js/bootstrap-datepicker.js' %}"></script>
+    <script src="{% static 'js/bootstrap-modalmanager.js' %}"></script>
+    <script src="{% static 'js/bootstrap-modal.js' %}"></script>
+{% endblock %}
+
+{% block sidebar %}
+
+{% endblock %}
+
+{% block content %}
+    <div class="btn-group pull-right">
+        <a class="btn" href="{% url 'scrap_export' 'site' %}{% if site %}?site={{ site.id }}{% endif %}"  data-toggle="tooltip" data-placement="left" data-original-title="Download csv - site info"><i class="icon-download-alt"></i></a>
+        <a class="btn" href="{% url 'scrap_export' 'product' %}{% if site %}?site={{ site.id }}{% endif %}"  data-toggle="tooltip" data-placement="right" data-original-title="Download csv - product info"><i class="icon-download-alt"></i></a>
+    </div>
+
+    {% if site %}
+        <form hidden id="selected-pages" action="#" method="POST">
+            {% csrf_token %}
+            <input hidden name="selected-pages-category" id="selected-pages-category">
+        </form>
+        <h3>Shop details</h3>
+        <div class="well">
+            <div class="pull-right">
+
+                <div class="btn-group">
+                    <a class="btn btn-primary ajax detail" ajax-modal-url="{% url 'scrap_site_info' site.id %}" href="#">Details</a>
+                    <a class="btn ajax edit" ajax-modal-url="{% url 'scrap_site_info' site.id 'edit' %}" href="#">Edit</a>
+                </div>
+
+                {% if screenshots %}
+                    <div class="btn-group">
+                        <a class="btn dropdown-toggle" data-toggle="dropdown">
+                            Screenshots <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% for screenshot in screenshots %}
+                                {% if screenshot.image %}
+                                    <li>
+                                        <a href="{{ screenshot.image.url }}" target="_blank" >{{ screenshot.date }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <div class="btn-group">
+                    <a class="btn ajax"  ajax-modal-url="{% url 'scrap_site_edit' site.id %}" href="#">Scrape</a>
+                    {% if scrapers %}
+                        <a class="btn dropdown-toggle" data-toggle="dropdown">
+                            <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% for scraper in scrapers %}
+                            <li>
+                                <a class="ajax"  ajax-modal-url="{% url 'scrap_site_edit' site.id scraper.id %}" href="#">{{ scraper.name }}</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                {% if descriptors %}
+                    <div class="btn-group">
+                        <a class="btn dropdown-toggle" data-toggle="dropdown">
+                            History <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% for descriptor in descriptors %}
+                                {% if descriptor.target.symbol == 'SiteInfo' %}
+                                    <li>
+                                        <a href="{% url 'scrap_export' 'history' descriptor.symbol %}?site={{ site.id }}">{{ descriptor.name }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {%  endif %}
+
+            </div>
+            <h4>{{ site.site.name }}</h4>
+            <ul>
+                <li>Url <a target="_blank" href="{{ site.site.url }}">{{ site.site.url|truncatechars:50 }}</a>.</li>
+                <li>First found <a href="{% url 'search_results' site.found.id %}?category={{ site.category.symbol }}">via {{ site.found.engine.name }} on {{ site.found.date }}</a>.</li>
+                <li>Now listed in <a href="{% url 'search_results_all' %}?category={{ site.category.symbol }}">{{ site.category.name }}</a> category. </li>
+            </ul>
+
+        </div>
+    {% endif %}
+
+    <h3><!--a href="javascript:$('.collapse').collapse()"-->Product listing<!--/a--></h3>
+    <ul class="nav nav-tabs">
+
+        <li class="{% if not banned %}active{% endif %}">
+            <a href="?">Results</a>
+        </li>
+        <li class="{% if banned %}active{% endif %}">
+            <a href="?banned"  class="muted">Deleted</a>
+        </li>
+    </ul>
+    {% if results %}
+
+
+        <table class="table table-striped" style="display: table;">
+            <!--caption>Product listing</caption-->
+            <tr>
+                <th style="text-align: center;">
+                    <input class="page-selector-all" form="selected-pages" type="checkbox" data-toggle="tooltip" data-placement="top" data-original-title="Select all" />
+                </th>
+                {% if not site %}<th>Shop</th>{% endif %}
+                <th>Name</th>
+                <!--th>Chemical Name</th-->
+                <th>Url</th>
+                <th></th>
+                <th></th>
+                <!--th>
+                    <a class="close" onclick="return null;"  data-toggle="tooltip" data-placement="top" data-original-title="Selected">&times;</a>
+                </th-->
+            </tr>
+            {% for result in results %}
+                <tr>
+                    <td style="text-align: center;">
+                        <input class="page-selector" form="selected-pages" value="{{ result.id }}" name="page-{{ result.id }}" type="checkbox" data-toggle="tooltip" data-placement="top" data-original-title="Select item" />
+                    </td>
+                    {% if not site %}
+                        <td>
+                            <a href="{% url 'scrap_site' result.page.site.id %}" data-toggle="tooltip" data-placement="top" data-original-title="{{ result.page.site.name }}">{{ result.page.site.name|truncatechars:20 }}</a>
+                        </td>
+                    {% endif %}
+                    <td>{{ result.name|truncatechars:40 }}</td>
+                    <!--td>{{ result.chem }}</td-->
+                    <td><a target="_blank" href="{{ result.page.url }}">{{ result.page.url|truncatechars:45 }}</a></td>
+                    <td>
+                        <div class="btn-group {% if forloop.last %}dropup{% endif %}">
+                            <a class="btn btn-primary detail ajax" ajax-modal-url="{% url 'scrap_product_info' result.id %}" href="#">Details</a>
+                            <a class="btn edit ajax" ajax-modal-url="{% url 'scrap_product_info' result.id 'edit' %}" href="#">Edit</a>
+                        </div>
+                        {% if descriptors %}
+                            <div class="btn-group">
+                                <a class="btn dropdown-toggle" data-toggle="dropdown">
+                                    History <span class="caret"></span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    {% for descriptor in descriptors %}
+                                        {% if descriptor.target.symbol == 'ProductInfo' %}
+                                            <li>
+                                                <a href="{% url 'scrap_export' 'history' descriptor.symbol %}?product={{ result.id }}">{{ descriptor.name }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {%  endif %}
+                    </td>
+                    <td>
+                        <form action="{% url 'product_ban' %}?category={{ category }}&nexturl={{ request.get_full_path|urlencode }}" method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="productid" value="{{ result.id }}">
+                            <button class="close" data-toggle="tooltip" data-placement="top" data-original-title="Delete page">&times;</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+        {% if results.has_previous or results.has_next %}
+            <div class="pagination pagination-small pagination-right">
+                <ul>
+                    {% if results.has_previous %}
+                        <li><a data-toggle="tooltip" title="First" href="?page=1">&lt;&lt;</a></li>
+                        <li><a data-toggle="tooltip" title="Previous" href="?page={{ results.previous_page_number }}">&lt;</a></li>
+                    {% else %}
+                        <li class="disabled"><span data-toggle="tooltip" title="First">&lt;</span></li>
+                        <li class="disabled"><span  data-toggle="tooltip" title="Previous">&lt;&lt;</span></li>
+                    {% endif %}
+                    {%  if pages %}
+                        {% for p in pages %}
+                            {% if p == results.number %}
+                                <li class="active"><a href="?page={{ p }}">{{ p }}</a></li>
+                            {% elif p == 0 %}
+                                <li class="disabled"><span>&hellip;</span></li>
+                            {% else %}
+                                <li><a href="?page={{ p }}">{{ p }}</a></li>
+                            {%  endif %}
+                        {% endfor %}
+                    {% else %}
+                        <li class="active"><a href="?page={{ results.number }}">{{ results.number }}/{{ results.paginator.num_pages }}</a></li>
+                    {% endif %}
+                    {% if results.has_next %}
+                        <li><a data-toggle="tooltip" title="Next" href="?page={{ results.next_page_number }}">&gt;</a></li>
+                        <li><a data-toggle="tooltip" title="Last" href="?page={{ results.paginator.num_pages }}">&gt;&gt;</a></li>
+                    {% else %}
+                        <li class="disabled"><span data-toggle="tooltip" title="Next">&gt;</span></li>
+                        <li class="disabled"><span data-toggle="tooltip" title="Last">&gt;&gt;</span></li>
+                    {% endif %}
+                </ul>
+            </div>
+        {% endif %}
+
+    {% else %}
+        <p>No products yet.</p>
+    {% endif %}
+
+    <div id="ajax-modal" class="modal hide" tabindex="-1" role="dialog"  aria-hidden="true">
+    </div>
+
+{% endblock %}
+
+{% block javascript %}
+    <script>
+
+        // Javascript to enable link to tab
+        var url = document.location.toString();
+        var hash = url.split(/#/)[1];
+
+        // Change hash for page-reload
+        //$('.nav-tabs a')
+        //        .on('shown', function (e) { window.location.hash = e.target.hash; });
+        //$('.modal')
+        //        .on('shown', function (e) { window.location.hash = e.target.id; })
+        //        .on('hidden', function (e) { window.location.hash = ''; });
+        var $modal = $('#ajax-modal');
+        //var $
+        var modalLoad = function(loadingElem, url) {
+            return function(event) {
+                // create the backdrop and wait for next modal to be triggered
+                loadingElem.modalmanager('loading');
+                var _url = event.target.getAttribute("ajax-modal-url"); // + '?nexturl={{ request.get_full_path|urlencode }}';
+                if (_url) url = _url;
+                setTimeout(function() {
+                    $modal.load(url, '', function(responseText, status){
+                        loadingElem.modalmanager('removeLoading');
+                        if (status == 'success') {
+                            $modal.modal();
+                            $modal.find('.datepicker').datepicker();
+                            $('[data-toggle=tooltip]').tooltip();
+                            $modal.find('.update').on( 'click', modalLoad($modal,url) );
+                        }
+                    });
+                }, 100);
+            };
+        };
+        $('.ajax').on('click', modalLoad($('body')));
+        $('[data-toggle=tooltip]').tooltip();
+        $('input.page-selector-all').change(function () {$('input.page-selector').prop('checked',$('input.page-selector-all').prop('checked'));  })
+        $('input.page-selector').change(function () {$('input.page-selector-all').prop('checked',false);  })
+
+    </script>
+{% endblock  %}
+
+{% block footer %}
+{% endblock  %}

@@ -1,0 +1,23 @@
+# vitrualenv - specific files
+bin/
+lib/
+local/
+include/
+man/
+share/
+
+# IDE specific
+*.iml
+.idea/
+out/
+
+# makefile generated
+init
+tmp/
+
+# python generated
+*.pyc
+.coverage
+cover/
+coverage.xml
+nosetests.xml

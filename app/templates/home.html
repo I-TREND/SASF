@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block body_class %}{{ block.super }} home{% endblock %}
+
+{% block nav-home %}active{% endblock %}
+
+{% block sidebar %}
+<li><a href="#lorem">Lorem ipsum</a></li>
+<li><a href="#pellentesque">Pellentesque malesuada</a></li>
+<li><a href="#sed">Sed laoreet</a></li>
+{% endblock %}
+
+{% block content %}
+
+    {{ site_data.intro|safe }}
+
+
+{% endblock %}
+
+{% block javascript %}
+{% endblock  %}
+
+{% block footer %}
+{% endblock  %}
