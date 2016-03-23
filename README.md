@@ -18,7 +18,7 @@ For postgres:
 
 Then checkout repository and initialize environment:
 
-    git clone https://pborky@bitbucket.org/pborky/scrap.git
+    git clone https://github.com/I-TREND/SASF.git
     cd scrap
     make initenv
     bin/activate
